@@ -2,6 +2,7 @@ CXX ?= g++
 CFLAGS = -Wall -Wconversion -O3 -fPIC
 SHVER = 2
 OS = $(shell uname)
+PREFIX = /usr/local
 
 all: svm-train svm-predict svm-scale
 
@@ -23,3 +24,11 @@ svm.o: svm.cpp svm.h
 	$(CXX) $(CFLAGS) -c svm.cpp
 clean:
 	rm -f *~ svm.o svm-train svm-predict svm-scale libsvm.so.$(SHVER)
+
+install: all
+	test -d $(PREFIX) || mkdir -p $(PREFIX)
+	test -d $(PREFIX)/include || mkdir -p $(PREFIX)/include
+	test -d $(PREFIX)/lib || mkdir -p $(PREFIX)/lib
+	install -m 0644 svm.h $(PREFIX)/include
+	install -m 0755 svm.o $(PREFIX)/lib
+
