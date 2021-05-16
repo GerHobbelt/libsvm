@@ -5,15 +5,15 @@
 #include <errno.h>
 #include "svm.h"
 
-int print_null(const char *s,...) {return 0;}
+static int print_null(const char *s,...) {return 0;}
 
 static int (*info)(const char *fmt,...) = &printf;
 
-struct svm_node *x;
-int max_nr_attr = 64;
+static struct svm_node *x;
+static int max_nr_attr = 64;
 
-struct svm_model* model;
-int predict_probability=0;
+static struct svm_model* model;
+static int predict_probability=0;
 
 static char *line = NULL;
 static int max_line_len;
@@ -36,13 +36,13 @@ static char* readline(FILE *input)
 	return line;
 }
 
-void exit_input_error(int line_num)
+static void exit_input_error(int line_num)
 {
 	fprintf(stderr,"Wrong input format at line %d\n", line_num);
 	exit(1);
 }
 
-void predict(FILE *input, FILE *output)
+static void predict(FILE *input, FILE *output)
 {
 	int correct = 0;
 	int total = 0;
@@ -156,7 +156,7 @@ void predict(FILE *input, FILE *output)
 		free(prob_estimates);
 }
 
-void exit_with_help()
+static void exit_with_help()
 {
 	printf(
 	"Usage: svm-predict [options] test_file model_file output_file\n"
@@ -167,7 +167,11 @@ void exit_with_help()
 	exit(1);
 }
 
-int main(int argc, char **argv)
+#ifdef BUILD_MONOLITHIC
+#define main(c, a)		svm_predict_main(c, a)
+#endif
+
+int main(int argc, const char **argv)
 {
 	FILE *input, *output;
 	int i;

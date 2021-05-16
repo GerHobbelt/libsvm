@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <string.h>
 
-void exit_with_help()
+static void exit_with_help()
 {
 	printf(
 	"Usage: svm-scale [options] data_filename\n"
@@ -18,26 +18,32 @@ void exit_with_help()
 	exit(1);
 }
 
-char *line = NULL;
-int max_line_len = 1024;
-double lower=-1.0,upper=1.0,y_lower,y_upper;
-int y_scaling = 0;
-double *feature_max;
-double *feature_min;
-double y_max = -DBL_MAX;
-double y_min = DBL_MAX;
-int max_index;
-int min_index;
-long int num_nonzeros = 0;
-long int new_num_nonzeros = 0;
+static char *line = NULL;
+static int max_line_len = 1024;
+static double lower=-1.0,upper=1.0,y_lower,y_upper;
+static int y_scaling = 0;
+static double *feature_max;
+static double *feature_min;
+static double y_max = -DBL_MAX;
+static double y_min = DBL_MAX;
+static int max_index;
+static int min_index;
+static long int num_nonzeros = 0;
+static long int new_num_nonzeros = 0;
 
+#undef min
+#undef max
 #define max(x,y) (((x)>(y))?(x):(y))
 #define min(x,y) (((x)<(y))?(x):(y))
 
-void output_target(double value);
-void output(int index, double value);
-char* readline(FILE *input);
-int clean_up(FILE *fp_restore, FILE *fp, const char *msg);
+static void output_target(double value);
+static void output(int index, double value);
+static char* readline(FILE *input);
+static int clean_up(FILE *fp_restore, FILE *fp, const char *msg);
+
+#ifdef BUILD_MONOLITHIC
+#define main(c, a)		svm_scale_main(c, a)
+#endif
 
 int main(int argc,char **argv)
 {
@@ -337,7 +343,7 @@ int main(int argc,char **argv)
 	return 0;
 }
 
-char* readline(FILE *input)
+static char* readline(FILE *input)
 {
 	int len;
 
@@ -355,7 +361,7 @@ char* readline(FILE *input)
 	return line;
 }
 
-void output_target(double value)
+static void output_target(double value)
 {
 	if(y_scaling)
 	{
@@ -369,7 +375,7 @@ void output_target(double value)
 	printf("%.17g ",value);
 }
 
-void output(int index, double value)
+static void output(int index, double value)
 {
 	/* skip single-valued attribute */
 	if(feature_max[index] == feature_min[index])
@@ -391,7 +397,7 @@ void output(int index, double value)
 	}
 }
 
-int clean_up(FILE *fp_restore, FILE *fp, const char* msg)
+static int clean_up(FILE *fp_restore, FILE *fp, const char* msg)
 {
 	fprintf(stderr,	"%s", msg);
 	free(line);

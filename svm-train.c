@@ -6,9 +6,9 @@
 #include "svm.h"
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 
-void print_null(const char *s) {}
+static void print_null(const char *s) {}
 
-void exit_with_help()
+static void exit_with_help()
 {
 	printf(
 	"Usage: svm-train [options] training_set_file [model_file]\n"
@@ -42,22 +42,22 @@ void exit_with_help()
 	exit(1);
 }
 
-void exit_input_error(int line_num)
+static void exit_input_error(int line_num)
 {
 	fprintf(stderr,"Wrong input format at line %d\n", line_num);
 	exit(1);
 }
 
-void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name);
-void read_problem(const char *filename);
-void do_cross_validation();
+static void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name);
+static void read_problem(const char *filename);
+static void do_cross_validation();
 
-struct svm_parameter param;		// set by parse_command_line
-struct svm_problem prob;		// set by read_problem
-struct svm_model *model;
-struct svm_node *x_space;
-int cross_validation;
-int nr_fold;
+static struct svm_parameter param;		// set by parse_command_line
+static struct svm_problem prob;		// set by read_problem
+static struct svm_model *model;
+static struct svm_node *x_space;
+static int cross_validation;
+static int nr_fold;
 
 static char *line = NULL;
 static int max_line_len;
@@ -79,6 +79,11 @@ static char* readline(FILE *input)
 	}
 	return line;
 }
+
+
+#ifdef BUILD_MONOLITHIC
+#define main(c, a)		svm_train_main(c, a)
+#endif
 
 int main(int argc, char **argv)
 {
@@ -119,7 +124,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void do_cross_validation()
+static void do_cross_validation()
 {
 	int i;
 	int total_correct = 0;
@@ -158,7 +163,7 @@ void do_cross_validation()
 	free(target);
 }
 
-void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name)
+static void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name)
 {
 	int i;
 	void (*print_func)(const char*) = NULL;	// default printing to stdout
@@ -275,7 +280,7 @@ void parse_command_line(int argc, char **argv, char *input_file_name, char *mode
 
 // read in a problem (in svmlight format)
 
-void read_problem(const char *filename)
+static void read_problem(const char *filename)
 {
 	int max_index, inst_max_index, i;
 	size_t elements, j;
