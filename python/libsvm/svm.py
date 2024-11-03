@@ -32,7 +32,7 @@ except:
         if sys.platform == 'win32':
             libsvm = CDLL(path.join(dirname, r'..\..\windows\libsvm.dll'))
         else:
-            libsvm = CDLL(path.join(dirname, '../../libsvm.so.3'))
+            libsvm = CDLL(path.join(dirname, '../../libsvm.so.4'))
     except:
     # For unix the prefix 'lib' is not considered.
         if find_library('svm'):
@@ -138,7 +138,15 @@ try:
     from numba import jit
     jit_enabled = True
 except:
-    jit = lambda x: x
+    # We need to support two cases: when jit is called with no arguments, and when jit is called with
+    # a keyword argument.
+    def jit(func=None, *args, **kwargs):
+        if func is None:
+            # This handles the case where jit is used with parentheses: @jit(nopython=True)
+            return lambda x: x
+        else:
+            # This handles the case where jit is used without parentheses: @jit
+            return func
     jit_enabled = False
 
 @jit(nopython=True)
