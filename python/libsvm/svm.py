@@ -59,6 +59,14 @@ PRINT_STRING_FUN = CFUNCTYPE(None, c_char_p)
 def print_null(s):
     return
 
+# In multi-threading, all threads share the same memory space of
+# the dynamic library (libsvm). Thus, we use a module-level
+# variable to keep a reference to ctypes print_null, preventing
+# python from garbage collecting it in thread B while thread A
+# still needs it. Check the usage of svm_set_print_string_function()
+# in LIBSVM README for details.
+ctypes_print_null = PRINT_STRING_FUN(print_null)
+
 def genFields(names, types):
     return list(zip(names, types))
 
@@ -100,7 +108,7 @@ def gen_svm_nodearray(xi, feature_max=None, isKernel=False):
             index_range = index_range[np.where(index_range <= feature_max)]
     elif isinstance(xi, (dict, list, tuple)):
         if isinstance(xi, dict):
-            index_range = xi.keys()
+            index_range = sorted(xi.keys())
         elif isinstance(xi, (list, tuple)):
             if not isKernel:
                 xi_shift = 1
@@ -109,11 +117,9 @@ def gen_svm_nodearray(xi, feature_max=None, isKernel=False):
                 index_range = range(0, len(xi)) # index starts from 0 for precomputed kernel
 
         if feature_max:
-            index_range = filter(lambda j: j <= feature_max, index_range)
+            index_range = list(filter(lambda j: j <= feature_max, index_range))
         if not isKernel:
-            index_range = filter(lambda j:xi[j-xi_shift] != 0, index_range)
-
-        index_range = sorted(index_range)
+            index_range = list(filter(lambda j:xi[j-xi_shift] != 0, index_range))
     else:
         raise TypeError('xi should be a dictionary, list, tuple, 1-d numpy array, or tuple of (index, data)')
 
@@ -122,9 +128,10 @@ def gen_svm_nodearray(xi, feature_max=None, isKernel=False):
 
     if scipy and isinstance(xi, tuple) and len(xi) == 2\
             and isinstance(xi[0], np.ndarray) and isinstance(xi[1], np.ndarray): # for a sparse vector
-        for idx, j in enumerate(index_range):
-            ret[idx].index = j
-            ret[idx].value = (xi[1])[idx]
+        # since xi=(indices, values), we must sort them simultaneously.
+        for idx, arg in enumerate(np.argsort(index_range)):
+            ret[idx].index = index_range[arg]
+            ret[idx].value = (xi[1])[arg]
     else:
         for idx, j in enumerate(index_range):
             ret[idx].index = j
@@ -333,7 +340,7 @@ class svm_parameter(Structure):
                 i = i + 1
                 self.probability = int(argv[i])
             elif argv[i] == "-q":
-                self.print_func = PRINT_STRING_FUN(print_null)
+                self.print_func = ctypes_print_null
             elif argv[i] == "-v":
                 i = i + 1
                 self.cross_validation = 1
